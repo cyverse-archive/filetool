@@ -1,6 +1,7 @@
-## DESCRIPTION
+filetool
+========
 
-This tool is the successor to the ipcfiletool. It's responsible for transferring files from an analysis directory into iRODS. It is usually called as part of a Condor DAG.
+This tool is responsible for transferring files from an analysis directory into iRODS. It is usually called as part of a Condor DAG.
 
 
 ## CONFIGURATION
