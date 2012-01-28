@@ -261,62 +261,6 @@ func ListDirFiltered(paths []string, excludePaths []string) []string {
 	return filteredPaths
 }
 
-func GetPATHDirs() []string {
-	envVars := os.Environ()
-	paths := make([]string, 0)
-
-	for _, envVar := range envVars {
-		if strings.HasPrefix(envVar, "PATH=") {
-			pathString := strings.Split(envVar, "=")[1]
-			pathDirs := strings.Split(pathString, ":")
-			paths = append(paths, pathDirs...)
-		}
-	}
-
-	return paths
-}
-
-func FindFileInPATH(fname string) (foundFile string, err os.Error) {
-	foundFile = ""
-	pathDirs := GetPATHDirs()
-	errOccurred := false
-	errString := ""
-
-	for _, pathDir := range pathDirs {
-		if ftutils.Exists(pathDir) {
-			filesInDir, listErr := ListDir(pathDir, true, false, false)
-
-			if listErr != nil {
-				if !errOccurred {
-					errOccurred = true
-				}
-
-				errString = errString + listErr.String() + "\n"
-			}
-
-			for _, fileInDir := range filesInDir {
-				if path.Base(fileInDir) == fname {
-					foundFile = fileInDir
-				}
-			}
-		}
-	}
-
-	if foundFile == "" {
-		if !errOccurred {
-			errOccurred = true
-		}
-
-		errString = errString + "Could not find " + fname + " in $PATH\n"
-	}
-
-	if errOccurred {
-		err = os.NewError(errString)
-	}
-
-	return foundFile, err
-}
-
 func NormalizeExcludes(excludes []string) (normalizedExcludes []string, err os.Error) {
 	normalizedExcludes = make([]string, 0)
 	errOccurred := false
@@ -612,16 +556,16 @@ func main() {
 
 	//Set up pathing for the executables and the config files
 	//for the icommands.
-	imkdirPath, err := FindFileInPATH(IMKDIR)
+	imkdirPath, err := exec.LookPath(IMKDIR)
 	ExitOnError(err)
 
-	iputPath, err := FindFileInPATH(IPUT)
+	iputPath, err := exec.LookPath(IPUT)
 	ExitOnError(err)
 
-	ilsPath, err := FindFileInPATH(ILS)
+	ilsPath, err := exec.LookPath(ILS)
 	ExitOnError(err)
 
-	igetPath, err := FindFileInPATH(IGET)
+	igetPath, err := exec.LookPath(IGET)
 	ExitOnError(err)
 
 	icommandsFiles, settingsErr := FindIrodsSettingsFiles()
