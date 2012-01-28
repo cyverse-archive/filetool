@@ -21,7 +21,7 @@ GOROOT=/home/tomcat/go gb
 
 
 %install
-install -m755 _bin/filetool $RPM_BUILD_ROOT/usr/local/bin/
+install -m755 bin/filetool $RPM_BUILD_ROOT/usr/local/bin/
 install -m755 handle_error.sh $RPM_BUILD_ROOT/usr/local/bin/
 
 %clean
