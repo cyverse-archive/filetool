@@ -1,7 +1,0 @@
-include $(GOROOT)/src/Make.inc
-
-TARG=iplant/ftutils
-GOFILES=\
-	ftutils.go
-
-include $(GOROOT)/src/Make.pkg

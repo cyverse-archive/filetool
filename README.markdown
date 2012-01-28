@@ -3,6 +3,11 @@ filetool
 
 This tool is responsible for transferring files from an analysis directory into iRODS. It is usually called as part of a Condor DAG.
 
+## Building filetool
+
+Install gb: https://github.com/skelterjohn/go-gb
+
+Run 'gb'.
 
 ## CONFIGURATION
 
