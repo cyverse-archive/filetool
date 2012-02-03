@@ -302,17 +302,25 @@ func GenerateDestinationPaths(inputPaths []string, sourceDirPath string) (destPa
 		sourceDirPath = sourceDirPath + "/"
 	}
 
-	for _, inputPath := range inputPaths {
-		absSourcePath, absErr := filepath.Abs(inputPath)
+	sourceDirPath, err = filepath.Abs(sourceDirPath)
 
-		if absErr != nil {
-			if !errOccurred {
-				errOccurred = true
+	if err != nil {
+		errOccurred = true
+		errString = errString + "Error getting absolute path of " + sourceDirPath + ": " + err.String() + "\n"
+	} else {
+		for _, inputPath := range inputPaths {
+			absSourcePath, absErr := filepath.Abs(inputPath)
+
+			if absErr != nil {
+				if !errOccurred {
+					errOccurred = true
+				}
+				errString = errString + "Error getting absolute path of " + absSourcePath + ": " + absErr.String() + "\n"
+			} else {
+				relSourcePath := string(absSourcePath[len(sourceDirPath):])
+				fmt.Println(relSourcePath)
+				destPaths[inputPath] = relSourcePath
 			}
-			errString = errString + "Error getting absolute path of " + absSourcePath + ": " + absErr.String() + "\n"
-		} else {
-			relSourcePath := string(absSourcePath[len(sourceDirPath):])
-			destPaths[inputPath] = relSourcePath
 		}
 	}
 
@@ -454,6 +462,8 @@ func doPut(imkdirPath string, ilsPath string, iputPath string, irodsEnv []string
 	//Generate destination paths and associate them with the source paths.
 	destPathsMap, err := GenerateDestinationPaths(sourceFileList, source)
 	ExitOnError(err)
+	fmt.Println(source)
+	fmt.Println(destPathsMap)
 
 	//Create the destination directory.
 	mkdirOutput, mkdirErr := Execute(imkdirPath, irodsEnv, "-p", dest)
@@ -575,6 +585,13 @@ func main() {
 	irodsEnv := []string{
 		"irodsAuthFileName=" + icommandsFiles["irodsAuthFileName"],
 		"irodsEnvFile=" + icommandsFiles["irodsEnvFile"],
+	}
+
+	//Set up the clientUserName, if necessary.
+	clientUser := os.Getenv("clientUserName")
+
+	if clientUser != "" {
+		irodsEnv = append(irodsEnv, "clientUserName="+clientUser)
 	}
 
 	if mkdirOp {
