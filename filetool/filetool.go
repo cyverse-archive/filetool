@@ -142,6 +142,9 @@ func Execute(cmd string, env []string, args ...string) (output string, err os.Er
 	return output, err
 }
 
+/*
+ * Validates the flags passed in by the user. Calls ValidateSource and ValidateDest.
+ */
 func ValidateFlags() {
 	sourceErr := ValidateSource()
 
@@ -159,6 +162,10 @@ func ValidateFlags() {
 	}
 }
 
+/*
+ * Utility function used by ListDir(). Takes in a *os.FileInfo structure and a path,
+ * returns the actual path pointed to by the symlink.
+ */
 func HandleSymlink(fip *os.FileInfo, fipPath string) (newFipPath string, err os.Error) {
 	symPath, evalErr := filepath.EvalSymlinks(fipPath)
 
@@ -178,6 +185,9 @@ func HandleSymlink(fip *os.FileInfo, fipPath string) (newFipPath string, err os.
 	return fipPath, err
 }
 
+/*
+ * Another utility function used by ListDir().
+ */
 func GetDirPathInfo(dirpath string) (dirPathInfo *os.FileInfo, err os.Error) {
 	dirPathInfo, lstatErr := os.Lstat(dirpath)
 
@@ -188,6 +198,10 @@ func GetDirPathInfo(dirpath string) (dirPathInfo *os.FileInfo, err os.Error) {
 	return dirPathInfo, err
 }
 
+/*
+ * Generates a list of paths (strings) that exist under a given directory. Can optionally
+ * filter out files and directories, and can also optionally recurse into sub-directories.
+ */
 func ListDir(dirpath string, listFiles bool, listDirs bool, recurse bool) (filePaths []string, err os.Error) {
 	var dirPathInfo *os.FileInfo
 	filePaths = make([]string, 0) //return value
@@ -237,6 +251,10 @@ func ListDir(dirpath string, listFiles bool, listDirs bool, recurse bool) (fileP
 	return filePaths, err
 }
 
+/*
+ * Accepts the output of a ListDir() call along with a list of paths to exclude
+ * and returns a new list of paths with all of the excluded paths filtered out.
+ */
 func ListDirFiltered(paths []string, excludePaths []string) []string {
 	filteredPaths := make([]string, 0)
 
@@ -261,6 +279,10 @@ func ListDirFiltered(paths []string, excludePaths []string) []string {
 	return filteredPaths
 }
 
+/*
+ * Takes in a list of paths and returns a list of absolute paths. Probably should
+ * be renamed to something a bit more generic.
+ */
 func NormalizeExcludes(excludes []string) (normalizedExcludes []string, err os.Error) {
 	normalizedExcludes = make([]string, 0)
 	errOccurred := false
