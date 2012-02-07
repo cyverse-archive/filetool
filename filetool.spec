@@ -1,7 +1,7 @@
 Summary: iPlant File Tool
 Name: iplant-filetool2
 Version: 0.0.1
-Release: 4
+Release: 5
 Epoch: 0
 Group: Applications
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
@@ -22,7 +22,6 @@ GOROOT=/home/tomcat/go gb
 
 %install
 install -m755 bin/filetool $RPM_BUILD_ROOT/usr/local/bin/
-install -m755 handle_error.sh $RPM_BUILD_ROOT/usr/local/bin/
 
 %clean
 GOROOT=/home/tomcat/go gb -c
@@ -30,5 +29,3 @@ GOROOT=/home/tomcat/go gb -c
 %files
 %defattr(0764,condor,condor)
 %attr(0775, condor,condor) /usr/local/bin/filetool
-%attr(0755, condor,condor) /usr/local/bin/handle_error.sh
-
