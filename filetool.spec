@@ -25,6 +25,7 @@ install -m755 bin/filetool $RPM_BUILD_ROOT/usr/local/bin/
 
 %clean
 GOROOT=/home/tomcat/go gb -c
+rm -r $RPM_BUILD_ROOT
 
 %files
 %defattr(0764,condor,condor)
