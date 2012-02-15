@@ -28,13 +28,12 @@ var includeFilesRaw string
 var includeFilesDelimiter string
 var source string
 var dest string
-var avuAttr string
-var avuVal string
-var avuUnit string
+var avusRaw string
+var avus [][]string
 var singleThreaded bool
-var avuOp bool
 var getOp bool
 var mkdirOp bool
+var imetaPath string
 
 /*
  * Sets up the flags and parses the command-line.
@@ -49,10 +48,7 @@ func SetupFlags() {
 	flag.BoolVar(&singleThreaded, "single-threaded", false, "Tells the iRODS iCommands to only use a single thread.")
 	flag.BoolVar(&getOp, "get", false, "Retrieve files from iRODS. Use the source as a path in iRODS and the destination as a local directory.")
 	flag.BoolVar(&mkdirOp, "mkdir", false, "Creates the directory in iRODS specified by -destination.")
-	flag.BoolVar(&avuOp, "avu", false, "Associates an AVU with a file or directory specified by -destination.")
-	flag.StringVar(&avuAttr, "attr", "", "Attribute portion of an AVU.")
-	flag.StringVar(&avuVal, "value", "", "Value portion of an AVU.")
-	flag.StringVar(&avuUnit, "unit", "", "Unit portion of an AVU,")
+	flag.StringVar(&avusRaw, "avus", "", "Sets avus for files uploaded. Must be in the format 'attr,val,unit|attr,val,unit'")
 	flag.Parse()
 }
 
@@ -484,6 +480,59 @@ func ExitOnError(err os.Error) {
 	}
 }
 
+func SplitAvus() {
+	avus = make([][]string, 0)
+
+	for _, avuTriplet := range strings.Split(avusRaw, "|") {
+		newTrio := strings.Split(avuTriplet, ",")
+
+		if len(newTrio) < 2 {
+			ExitOnError(os.NewError("All AVUs must have at least two fields."))
+		}
+
+		if len(newTrio) == 2 {
+			newTrio = append(newTrio, "")
+		}
+
+		avus = append(avus, newTrio)
+	}
+}
+
+func doAvu(imetaPath string, avuDest string, irodsEnv []string, isFile bool, avuEntry []string) {
+	var imetaArgs []string
+	var imetaOutput string
+	var imetaErr os.Error
+	var typeFlag string
+
+	if isFile {
+		typeFlag = "-d"
+	} else {
+		typeFlag = "-C"
+
+		if string(avuDest[len(avuDest)-1]) == "/" {
+			avuDest = string(avuDest[:len(avuDest)-1])
+		}
+	}
+
+	imetaArgs = []string{"add", typeFlag, avuDest, avuEntry[0], avuEntry[1], avuEntry[2]}
+
+	imetaOutput, imetaErr = Execute(imetaPath, irodsEnv, imetaArgs...)
+
+	if imetaErr != nil {
+		fmt.Println(imetaErr.String())
+	}
+
+	fmt.Print(imetaOutput)
+}
+
+func applyAvus(avuDest string, irodsEnv []string, isFile bool) {
+	if len(avus) > 0 {
+		for _, triplet := range avus {
+			doAvu(imetaPath, avuDest, irodsEnv, isFile, triplet)
+		}
+	}
+}
+
 func doPut(imkdirPath string, ilsPath string, iputPath string, irodsEnv []string) {
 	//Walks the source directory and generates a list of files
 	//that need to get transferred to the destination.
@@ -493,13 +542,12 @@ func doPut(imkdirPath string, ilsPath string, iputPath string, irodsEnv []string
 	//Generate destination paths and associate them with the source paths.
 	destPathsMap, err := GenerateDestinationPaths(sourceFileList, source)
 	ExitOnError(err)
-	fmt.Println(source)
-	fmt.Println(destPathsMap)
 
 	//Create the destination directory.
 	mkdirOutput, mkdirErr := Execute(imkdirPath, irodsEnv, "-p", dest)
 	ExitOnError(mkdirErr)
 	fmt.Println(mkdirOutput)
+	applyAvus(dest, irodsEnv, false)
 
 	ilsOutput, ilsErr := Execute(ilsPath, irodsEnv, dest)
 	ExitOnError(ilsErr)
@@ -534,6 +582,18 @@ func doPut(imkdirPath string, ilsPath string, iputPath string, irodsEnv []string
 
 		if iputErr != nil {
 			fmt.Println(iputErr.String())
+		}
+
+		avuFip, avuErr := os.Stat(sourcePath)
+
+		if avuErr != nil {
+			fmt.Println(avuErr.String())
+		}
+
+		if avuFip.IsDirectory() {
+			applyAvus(fullDest, irodsEnv, false)
+		} else {
+			applyAvus(fullDest, irodsEnv, true)
 		}
 
 		fmt.Print(iputOutput)
@@ -588,30 +648,9 @@ func doMkdir(imkdirPath string, irodsEnv []string) {
 		fmt.Println(imkdirErr.String())
 	}
 
+	applyAvus(dest, irodsEnv, false)
+
 	fmt.Print(imkdirOutput)
-}
-
-func doAvu(imetaPath string, irodsEnv []string, isFile bool) {
-	var imetaArgs []string
-	var imetaOutput string
-	var imetaErr os.Error
-	var typeFlag string
-
-	if isFile {
-		typeFlag = "-d"
-	} else {
-		typeFlag = "C"
-	}
-
-	imetaArgs = []string{"add", typeFlag, dest, avuAttr, avuVal, avuUnit}
-
-	imetaOutput, imetaErr = Execute(imetaPath, irodsEnv, imetaArgs...)
-
-	if imetaErr != nil {
-		fmt.Println(imetaErr.String())
-	}
-
-	fmt.Print(imetaOutput)
 }
 
 func main() {
@@ -632,11 +671,14 @@ func main() {
 	igetPath, err := exec.LookPath(IGET)
 	ExitOnError(err)
 
-	imetaPath, err := exec.LookPath(IMETA)
-	ExitOnError(err)
+	var imetaErr os.Error
+	imetaPath, imetaErr = exec.LookPath(IMETA)
+	ExitOnError(imetaErr)
 
 	icommandsFiles, settingsErr := FindIrodsSettingsFiles()
 	ExitOnError(settingsErr)
+
+	SplitAvus()
 
 	//Set up the environment variables for the icommands.
 	irodsEnv := []string{
@@ -649,12 +691,6 @@ func main() {
 
 	if clientUser != "" {
 		irodsEnv = append(irodsEnv, "clientUserName="+clientUser)
-	}
-
-	if avuOp {
-		doAvu(imetaPath, irodsEnv, true)
-		fmt.Println("DONE!")
-		os.Exit(0)
 	}
 
 	if mkdirOp {
