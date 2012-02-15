@@ -18,6 +18,7 @@ const IPUT = "iput"
 const IMKDIR = "imkdir"
 const ILS = "ils"
 const IGET = "iget"
+const IMETA = "imeta"
 
 var excludeFiles []string
 var excludeFilesRaw string
@@ -27,7 +28,11 @@ var includeFilesRaw string
 var includeFilesDelimiter string
 var source string
 var dest string
+var avuAttr string
+var avuVal string
+var avuUnit string
 var singleThreaded bool
+var avuOp bool
 var getOp bool
 var mkdirOp bool
 
@@ -44,6 +49,10 @@ func SetupFlags() {
 	flag.BoolVar(&singleThreaded, "single-threaded", false, "Tells the iRODS iCommands to only use a single thread.")
 	flag.BoolVar(&getOp, "get", false, "Retrieve files from iRODS. Use the source as a path in iRODS and the destination as a local directory.")
 	flag.BoolVar(&mkdirOp, "mkdir", false, "Creates the directory in iRODS specified by -destination.")
+	flag.BoolVar(&avuOp, "avu", false, "Associates an AVU with a file or directory specified by -destination.")
+	flag.StringVar(&avuAttr, "attr", "", "Attribute portion of an AVU.")
+	flag.StringVar(&avuVal, "value", "", "Value portion of an AVU.")
+	flag.StringVar(&avuUnit, "unit", "", "Unit portion of an AVU,")
 	flag.Parse()
 }
 
@@ -582,6 +591,29 @@ func doMkdir(imkdirPath string, irodsEnv []string) {
 	fmt.Print(imkdirOutput)
 }
 
+func doAvu(imetaPath string, irodsEnv []string, isFile bool) {
+	var imetaArgs []string
+	var imetaOutput string
+	var imetaErr os.Error
+	var typeFlag string
+
+	if isFile {
+		typeFlag = "-d"
+	} else {
+		typeFlag = "C"
+	}
+
+	imetaArgs = []string{"add", typeFlag, dest, avuAttr, avuVal, avuUnit}
+
+	imetaOutput, imetaErr = Execute(imetaPath, irodsEnv, imetaArgs...)
+
+	if imetaErr != nil {
+		fmt.Println(imetaErr.String())
+	}
+
+	fmt.Print(imetaOutput)
+}
+
 func main() {
 	SetupFlags()
 	ValidateFlags()
@@ -600,6 +632,9 @@ func main() {
 	igetPath, err := exec.LookPath(IGET)
 	ExitOnError(err)
 
+	imetaPath, err := exec.LookPath(IMETA)
+	ExitOnError(err)
+
 	icommandsFiles, settingsErr := FindIrodsSettingsFiles()
 	ExitOnError(settingsErr)
 
@@ -616,15 +651,24 @@ func main() {
 		irodsEnv = append(irodsEnv, "clientUserName="+clientUser)
 	}
 
-	if mkdirOp {
-		doMkdir(imkdirPath, irodsEnv)
-	} else {
-		if getOp {
-			doGet(igetPath, ilsPath, irodsEnv)
-		} else {
-			doPut(imkdirPath, ilsPath, iputPath, irodsEnv)
-		}
+	if avuOp {
+		doAvu(imetaPath, irodsEnv, true)
+		fmt.Println("DONE!")
+		os.Exit(0)
 	}
 
+	if mkdirOp {
+		doMkdir(imkdirPath, irodsEnv)
+		fmt.Println("DONE!")
+		os.Exit(0)
+	}
+
+	if getOp {
+		doGet(igetPath, ilsPath, irodsEnv)
+		fmt.Println("DONE!")
+		os.Exit(0)
+	}
+
+	doPut(imkdirPath, ilsPath, iputPath, irodsEnv)
 	fmt.Println("DONE!")
 }
