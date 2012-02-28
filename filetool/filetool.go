@@ -273,6 +273,9 @@ func ListDirFiltered(paths []string, excludePaths []string) []string {
 
 		if !foundPath {
 			filteredPaths = append(filteredPaths, fpath)
+			fmt.Println("Included " + fpath + " in the list of paths to transfer.")
+		} else {
+			fmt.Println("Excluded " + fpath + " from the list of paths to transfer.")
 		}
 	}
 
@@ -305,6 +308,7 @@ func NormalizeExcludes(excludes []string) (normalizedExcludes []string, err os.E
 
 		if epath != "" {
 			normalizedExcludes = append(normalizedExcludes, normalizedPath)
+			fmt.Println("Added " + normalizedPath + " to the list of excluded paths.")
 		}
 	}
 
