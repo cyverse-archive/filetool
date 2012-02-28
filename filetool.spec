@@ -1,7 +1,7 @@
 Summary: iPlant File Tool
 Name: iplant-filetool2
 Version: 0.0.1
-Release: 5
+Release: 6
 Epoch: 0
 Group: Applications
 BuildRoot: %{_tmppath}/%{name}-%{version}-buildroot
