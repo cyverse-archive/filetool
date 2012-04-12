@@ -3,4 +3,5 @@
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.iplantc/clojure-commons "1.1.0-SNAPSHOT"]
-                 [org.clojure/tools.cli "0.2.1"]])
+                 [org.clojure/tools.cli "0.2.1"]
+                 [commons-io/commons-io "2.2"]])
