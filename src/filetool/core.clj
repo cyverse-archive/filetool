@@ -62,3 +62,15 @@
     "--mkdir"
     "Creates the directory in iRODS specified by --destination."
     :default false]))
+
+(defn absify
+  "Takes in a sequence of paths and turns them all into absolute paths."
+  [paths]
+  (map #(if (ft/abs-path? %1) %1 (ft/abs-path %1)) paths))
+
+(defn exclude-files
+  "Splits up the exclude option and turns them all into absolute paths."
+  [{excludes :exclude delimiter :exclude-delimiter}]
+  (map absify (string/split excludes (re-pattern delimiter))))
+
+
