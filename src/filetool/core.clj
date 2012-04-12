@@ -1,9 +1,12 @@
 (ns filetool.core
+  (:use [clojure.java.io :only (file)])
   (:require [clojure.tools.logging :as log]
             [clojure.tools.cli :as cli]
             [clojure.java.shell :as sh]
             [clojure.string :as string]
-            [clojure-commons.file-utils :as ft]))
+            [clojure-commons.file-utils :as ft])
+  (:import [org.apache.commons.io FileUtils]
+           [org.apache.commons.io.filefilter TrueFileFilter]))
 
 (defn system-env
   "Returns values for the specified environment variable
@@ -13,6 +16,14 @@
      (System/getenv))
   ([var-name]
      (System/getenv var-name)))
+
+(defn files-and-dirs
+  "Returns a recursively listing of all files and subdirectories
+   present under 'parent'."
+  [parent]
+  (map
+   #(.getAbsolutePath %)
+   (FileUtils/listFilesAndDirs (file parent) TrueFileFilter/INSTANCE TrueFileFilter/INSTANCE)))
 
 (defn settings
   [args]
