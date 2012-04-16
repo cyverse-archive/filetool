@@ -11,6 +11,17 @@
             [clojure.string :as string]
             [clojure-commons.file-utils :as ft]))
 
+(defn process-exit
+  "Examines the exit map that gets passed in and decides whether to
+   throw an exception or not."
+  [{:keys [exit out err]}]
+  (println "stdout: ")
+  (println out)
+  (println "stderr: ")
+  (println err)
+  (if (not= exit 0)
+    (throw+ {:exit-code exit})))
+
 (defn exclude-files
   "Splits up the exclude option and turns them all into absolute paths."
   [{excludes :exclude delimiter :exclude-delimiter}]
@@ -97,11 +108,11 @@
 
 (defn imkdir
   [d env]
-  (sh/sh (imkdir-path) "-p" d env))
+  (process-exit (sh/sh (imkdir-path) "-p" d env)))
 
 (defn ils
   [d env]
-  (sh/sh (ils-path) env))
+  (process-exit (sh/sh (ils-path) env)))
 
 (defn remote-create-dir
   [file-path env]
@@ -131,7 +142,7 @@
             args-list (if single-threaded
                         [(iput-path) "-f" "-P" "-N 0" src full-dest :env ic-env]
                         [(iput-path) "-f" "-P" src full-dest :env ic-env])]
-        (apply sh/sh args-list)))))
+        (process-exit (apply sh/sh args-list))))))
 
 (defn- iget-args
   [source dest single-threaded? env]
@@ -158,7 +169,7 @@
         ic-env (icommands-env)
         srcdir (ft/rm-last-slash source)
         args   (iget-args source dest (:single-threaded options) ic-env)]
-    (apply sh/sh args)))
+    (process-exit (apply sh/sh args))))
 
 (defn validate
   [options]
@@ -230,25 +241,28 @@
 
 (defn -main
   [& args]
-  (let [[options remnants banner] (settings args)]
-    (when (:help options)
-      (println "yay")
-      (println banner)
-      (System/exit 0))
+  (try+
+   (let [[options remnants banner] (settings args)]
+     (when (:help options)
+       (println banner)
+       (System/exit 0))
 
-    (when (:mkdir options)
-      (imkdir-command options)
-      (System/exit 0))
+     (when (:mkdir options)
+       (imkdir-command options)
+       (System/exit 0))
 
-    (when (:get options)
-      (iget-command options)
-      (System/exit 0))
+     (when (:get options)
+       (iget-command options)
+       (System/exit 0))
 
-    (when (:put options)
-      (iput-command options)
-      (System/exit 0))
+     (when (:put options)
+       (iput-command options)
+       (System/exit 0))
 
-    (println banner)
-    (System/exit 1)))
+     (println banner)
+     (System/exit 1))
+   (catch java.lang.Exception e
+     (println e)
+     (System/exit 2))))
 
 
