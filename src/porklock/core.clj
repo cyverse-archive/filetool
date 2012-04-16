@@ -1,4 +1,5 @@
 (ns porklock.core
+  (:gen-class)
   (:use [clojure.set]
         [porklock.fileops]
         [porklock.system]
@@ -82,6 +83,12 @@
   []
   (find-file-in-path "iput"))
 
+(defn iget-path
+  "Returns the path to the iget executable, or an empty
+   string if iget cannot be found."
+  []
+  (find-file-in-path "iget"))
+
 (defn ils-path
   "Returns the path to the ils executable or an empty
    string if ils couldn't be found."
@@ -101,39 +108,46 @@
   (if (not (string/blank? (ft/dirname file-path)))
     (imkdir (ft/dirname file-path) env)))
 
+(defn imkdir-command
+  "Runs the imkdir command, creating a directory in iRODS."
+  [options]
+  (let [dest-dir (:destination options)
+        ic-env   (icommands-env)]
+    (imkdir dest-dir ic-env)))
+
 (defn iput-command
   "Runs the iput icommand, tranferring files from the --source
    to the remote --destination."
   [options]
-  (let [source-dir     (:source options)
-        dest-dir       (:destination options)
-        single-thread  (:single-threaded options)
-        ic-env         (icommands-env)
-        transfer-files (files-to-transfer options)
-        dest-files     (relative-dest-paths transfer-files source-dir)]
-    (doseq [[src dest] (seq dest-files)]
+  (let [source-dir      (:source options)
+        dest-dir        (:destination options)
+        single-threaded (:single-threaded options)
+        ic-env          (icommands-env)
+        transfer-files  (files-to-transfer options)
+        dest-files      (relative-dest-paths transfer-files source-dir)]
+    (doseq [[src dest]  (seq dest-files)]
       (remote-create-dir dest ic-env)
       (let [full-dest (ft/path-join dest-dir dest)
             args-list (if single-threaded
-                        [(iput-path) "-f" "-P" "-N 0" src full-dest]
-                        [(iput-path) "-f" "-P" src full-dest])]
+                        [(iput-path) "-f" "-P" "-N 0" src full-dest :env ic-env]
+                        [(iput-path) "-f" "-P" src full-dest :env ic-env])]
         (apply sh/sh args-list)))))
 
 (defn- iget-args
-  [source dest single-threaded?]
+  [source dest single-threaded? env]
   (let [src-dir (ft/rm-last-slash source)]
     (cond
      (and (.endsWith source "/") single-threaded?)
-     [(iget-path) "-f" "-P" "-r" "-N 0" src-dir dest]
+     [(iget-path) "-f" "-P" "-r" "-N 0" src-dir dest :env env]
      
      (and (.endsWith source "/" (not single-threaded?)))
-     [(iget-path "-f" "-P" "-r" src-dir dest)]
+     [(iget-path) "-f" "-P" "-r" src-dir dest :env env]
      
      (and (not (.endsWith source "/")) single-threaded?)
-     [(iget-path) "-f" "-P" "-N 0" src-dir dest]
+     [(iget-path) "-f" "-P" "-N 0" src-dir dest :env env]
      
      :else
-     [(iget-path) "-f" "-P" src-dir dest])))
+     [(iget-path) "-f" "-P" src-dir dest :env env])))
 
 (defn iget-command
   "Runs the iget icommand, retrieving files from --source
@@ -141,8 +155,9 @@
   [options]
   (let [source (:source options)
         dest   (:destination options)
+        ic-env (icommands-env)
         srcdir (ft/rm-last-slash source)
-        args   (iget-args source dest (:single-threaded options))]
+        args   (iget-args source dest (:single-threaded options) ic-env)]
     (apply sh/sh args)))
 
 (defn validate
@@ -196,16 +211,44 @@
    ["-t"
     "--single-threaded"
     "Tells the i-commands to only use a single thread."
-    :default false]
+    :flag true]
 
    ["-g"
     "--get"
     "Retrieve files from iRODS. Use the --source as a path in iRODS and the --destination as a local directory."
-    :default false]
+    :flag true]
 
    ["-m"
     "--mkdir"
     "Creates the directory in iRODS specified by --destination."
-    :default false]))
+    :flag true]
+
+   ["-h"
+    "--help"
+    "Prints this help."
+    :flag true]))
+
+(defn -main
+  [& args]
+  (let [[options remnants banner] (settings args)]
+    (when (:help options)
+      (println "yay")
+      (println banner)
+      (System/exit 0))
+
+    (when (:mkdir options)
+      (imkdir-command options)
+      (System/exit 0))
+
+    (when (:get options)
+      (iget-command options)
+      (System/exit 0))
+
+    (when (:put options)
+      (iput-command options)
+      (System/exit 0))
+
+    (println banner)
+    (System/exit 1)))
 
 
