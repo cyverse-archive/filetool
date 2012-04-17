@@ -8,12 +8,16 @@
 (defn exclude-files
   "Splits up the exclude option and turns them all into absolute paths."
   [{excludes :exclude delimiter :exclude-delimiter}]
-  (absify (string/split excludes (re-pattern delimiter))))
+  (if-not (string/blank? excludes) 
+    (absify (string/split excludes (re-pattern delimiter)))
+    []))
 
 (defn include-files
   "Splits up the include option and turns them all into absolute paths."
   [{includes :include delimiter :include-delimiter}]
-  (absify (string/split includes (re-pattern delimiter))))
+  (if-not (string/blank? includes) 
+    (absify (string/split includes (re-pattern delimiter)))
+    []))
 
 (defn files-to-transfer
   "Constructs a list of the files that need to be transferred."
@@ -21,6 +25,8 @@
   (let [includes (set (include-files options))
         excludes (set (exclude-files options))
         allfiles (set (files-and-dirs (:source options)))]
+    (println (str "includes: " includes))
+    (println (str "excludes: " excludes))
     (seq (union (difference allfiles excludes) includes))))
 
 (defn- str-contains?
@@ -29,15 +35,19 @@
     true
     false))
 
+(defn- fix-path
+  [transfer-file sdir ddir]
+  (ft/rm-last-slash (ft/path-join ddir (string/replace transfer-file (re-pattern sdir) ""))))
+
 (defn relative-dest-paths
-  "Constructs a list of relative destination paths based on the
+  "Constructs a list of absolute destination paths based on the
    input and the given source directory."
-  [transfer-files source-dir]
+  [transfer-files source-dir dest-dir]
   
   (let [sdir (ft/add-trailing-slash source-dir)]
     (apply merge (map
-                  #(if (and (str-contains? %1 sdir))
-                     {%1 (string/replace %1 (re-pattern sdir) "")} 
+                  #(if (str-contains? %1 sdir)
+                     {%1 (fix-path %1 sdir dest-dir)} 
                      {%1 %1})
                   transfer-files))))
 

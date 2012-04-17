@@ -8,12 +8,13 @@
   "Returns a recursively listing of all files and subdirectories
    present under 'parent'."
   [parent]
-  (map
-    #(.getAbsolutePath %)
-    (FileUtils/listFiles 
-      (file parent) 
-      TrueFileFilter/INSTANCE 
-      TrueFileFilter/INSTANCE)))
+  (filter #(not (ft/dir? %1)) 
+          (map
+            #(.getAbsolutePath %)
+            (FileUtils/listFiles 
+              (file parent) 
+              TrueFileFilter/INSTANCE 
+              TrueFileFilter/INSTANCE))))
 
 (defn absify
   "Takes in a sequence of paths and turns them all into absolute paths."

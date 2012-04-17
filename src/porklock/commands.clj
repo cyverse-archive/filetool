@@ -1,7 +1,9 @@
 (ns porklock.commands
   (:use [porklock.pathing]
         [porklock.system]
-        [porklock.shell-interop])
+        [porklock.shell-interop]
+        [porklock.fileops :only [absify]]
+        [clojure.pprint :only [pprint]])
   (:require [clojure.string :as string]
             [clojure-commons.file-utils :as ft]))
 
@@ -38,23 +40,26 @@
   "Runs the iput icommand, tranferring files from the --source
    to the remote --destination."
   [options]
-  (let [source-dir      (:source options)
+  (let [source-dir      (ft/abs-path (:source options))
         dest-dir        (:destination options)
         single-threaded (:single-threaded options)
         ic-env          (icommands-env)
         transfer-files  (files-to-transfer options)
-        dest-files      (relative-dest-paths transfer-files source-dir)]
+        dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
+    (pprint source-dir)
+    (pprint transfer-files)
+    (pprint dest-files)
     (doseq [[src dest]  (seq dest-files)]
       (remote-create-dir dest ic-env)
-      (let [full-dest (ft/path-join dest-dir dest)
-            args-list (if single-threaded
-                        [(iput-path) "-f" "-P" "-N 0" src full-dest :env ic-env]
-                        [(iput-path) "-f" "-P" src full-dest :env ic-env])]
+      (let [args-list (if single-threaded
+                        [(iput-path) "-f" "-P" "-N 0" src dest :env ic-env]
+                        [(iput-path) "-f" "-P" src dest :env ic-env])]
         (shell-out args-list)))))
 
 (defn- iget-args
-  [source dest single-threaded? env]
-  (let [src-dir (ft/rm-last-slash source)]
+  [source destination single-threaded? env]
+  (let [src-dir (ft/rm-last-slash source)
+        dest    (ft/add-trailing-slash destination)]
     (cond
      (and (.endsWith source "/") single-threaded?)
      [(iget-path) "-f" "-P" "-r" "-N 0" src-dir dest :env env]
