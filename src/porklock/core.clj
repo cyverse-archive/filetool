@@ -3,6 +3,7 @@
   (:use [clojure.set]
         [porklock.fileops]
         [porklock.system]
+        [porklock.shell-interop]
         [slingshot.slingshot :only [try+ throw+]]
         [clojure-commons.error-codes])
   (:require [clojure.tools.logging :as log]
@@ -10,17 +11,6 @@
             [clojure.java.shell :as sh]
             [clojure.string :as string]
             [clojure-commons.file-utils :as ft]))
-
-(defn process-exit
-  "Examines the exit map that gets passed in and decides whether to
-   throw an exception or not."
-  [{:keys [exit out err]}]
-  (println "stdout: ")
-  (println out)
-  (println "stderr: ")
-  (println err)
-  (if (not= exit 0)
-    (throw+ {:exit-code exit})))
 
 (defn exclude-files
   "Splits up the exclude option and turns them all into absolute paths."
@@ -108,11 +98,11 @@
 
 (defn imkdir
   [d env]
-  (process-exit (sh/sh (imkdir-path) "-p" d env)))
+  (shell-out [(imkdir-path) "-p" d :env env]))
 
 (defn ils
   [d env]
-  (process-exit (sh/sh (ils-path) env)))
+  (shell-out [(ils-path) :env env]))
 
 (defn remote-create-dir
   [file-path env]
@@ -142,7 +132,7 @@
             args-list (if single-threaded
                         [(iput-path) "-f" "-P" "-N 0" src full-dest :env ic-env]
                         [(iput-path) "-f" "-P" src full-dest :env ic-env])]
-        (process-exit (apply sh/sh args-list))))))
+        (shell-out args-list)))))
 
 (defn- iget-args
   [source dest single-threaded? env]
@@ -151,7 +141,7 @@
      (and (.endsWith source "/") single-threaded?)
      [(iget-path) "-f" "-P" "-r" "-N 0" src-dir dest :env env]
      
-     (and (.endsWith source "/" (not single-threaded?)))
+     (and (.endsWith source "/") (not single-threaded?))
      [(iget-path) "-f" "-P" "-r" src-dir dest :env env]
      
      (and (not (.endsWith source "/")) single-threaded?)
@@ -169,7 +159,7 @@
         ic-env (icommands-env)
         srcdir (ft/rm-last-slash source)
         args   (iget-args source dest (:single-threaded options) ic-env)]
-    (process-exit (apply sh/sh args))))
+    (shell-out args)))
 
 (defn validate
   [options]
