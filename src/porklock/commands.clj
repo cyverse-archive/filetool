@@ -46,9 +46,6 @@
         ic-env          (icommands-env)
         transfer-files  (files-to-transfer options)
         dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
-    (pprint source-dir)
-    (pprint transfer-files)
-    (pprint dest-files)
     (doseq [[src dest]  (seq dest-files)]
       (remote-create-dir dest ic-env)
       (let [args-list (if single-threaded

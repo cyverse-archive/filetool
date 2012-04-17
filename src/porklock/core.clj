@@ -119,13 +119,25 @@
       (System/exit 1))))
 
 (defn err-msg
-  [err-code]
-  (cond
-    (= err-code ERR_DOES_NOT_EXIST)      "Path does not exist: "
-    (= err-code ERR_NOT_A_FOLDER)        "Path is not a folder: "
-    (= err-code ERR_NOT_A_FILE)          "Path is not a file: "
-    (= err-code "ERR_PATH_NOT_ABSOLUTE") "Path is not absolute: "
-    :else "Error: "))
+  [err]
+  (let [err-code (:error_code err)] 
+    (cond
+      (= err-code ERR_DOES_NOT_EXIST)
+      (str "Path does not exist: " (:path err))
+      
+      (= err-code ERR_NOT_A_FOLDER)        
+      (str "Path is not a folder: " (:path err))
+      
+      (= err-code ERR_NOT_A_FILE)          
+      (str "Path is not a file: " (:path err))
+      
+      (= err-code "ERR_PATH_NOT_ABSOLUTE") 
+      (str "Path is not absolute: " (:path err))
+      
+      (= err-code "ERR_BAD_EXIT_CODE")
+      (str "Command exited with status: " (:exit-code err))
+      
+      :else (str "Error: " err))))
 
 (defn -main
   [& args]
@@ -161,7 +173,7 @@
          (println banner)
          (System/exit 1))))
    (catch error? err
-     (println (str (err-msg (:error_code err)) (:path err)))
+     (println (err-msg err))
      (System/exit 1))
    (catch java.lang.Exception e
      (println (format-exception e))

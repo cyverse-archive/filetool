@@ -18,7 +18,8 @@
     (println err))
   
   (if (not= exit 0)
-    (throw+ {:exit-code exit})))
+    (throw+ {:error_code "ERR_BAD_EXIT_CODE"
+             :exit-code exit})))
 
 (defn print-command
   "Prints out the command-line invocation based on the arguments

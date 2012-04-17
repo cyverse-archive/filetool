@@ -25,8 +25,6 @@
   (let [includes (set (include-files options))
         excludes (set (exclude-files options))
         allfiles (set (files-and-dirs (:source options)))]
-    (println (str "includes: " includes))
-    (println (str "excludes: " excludes))
     (seq (union (difference allfiles excludes) includes))))
 
 (defn- str-contains?
