@@ -29,8 +29,11 @@ my ($url) = @ARGV;
 
 # Fetch the file and obtain the HTTP status code.
 my $code = fetch_file( $filename, $url );
-if ( $code ne '200' ) {
-    croak "URL upload failed with HTTP response code $code\n";
+if ( $code < 200 || $code > 299 ) {
+    croak "URL upload failed with HTTP status $code\n";
+}
+if ( !-e $filename ) {
+    croak "URL upload returned HTTP status $code, but no file was saved";
 }
 
 exit;
