@@ -11,7 +11,6 @@
   :iplant-rpm {:summary "Porklock"
                :type :command
                :release 1
-               :provides "iplant-porklock"
                :exe-files ["curl_wrapper.pl"]}
   :repositories {"iplantCollaborative"
                  "http://projects.iplantcollaborative.org/archiva/repository/internal/"})
