@@ -2,7 +2,21 @@
   (:use [porklock.pathing]
         [slingshot.slingshot :only [try+ throw+]]
         [clojure-commons.error-codes])
-  (:require [clojure-commons.file-utils :as ft]))
+  (:require [clojure-commons.file-utils :as ft]
+            [clojure.string :as string]))
+
+(def ERR_MISSING_OPTION "ERR_MISSING_OPTION")
+(def ERR_PATH_NOT_ABSOLUTE "ERR_PATH_NOT_ABSOLUTE")
+(def ERR_ACCESS_DENIED "ERR_ACCESS_DENIED")
+
+(defn usable?
+  [user]
+  (let [path-elems (string/split (pwd) (re-pattern java.io.File/separator))]
+    (if (> (count path-elems) 3)
+      (or
+        (= user (nth path-elems 3))
+        (= user (System/getProperty "user.name")))
+      false)))
 
 (defn validate-mkdir
   "Validates the info for a mkdir op.
@@ -11,6 +25,17 @@
    For a mkdir op, all we need is the .irods
    files and the imkdir executable."
   [options]
+  (if-not (:user options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--user"}))
+  
+  (if-not (usable? (:user options))
+    (throw+ {:error_code ERR_ACCESS_DENIED}))
+  
+  (if-not (:destination options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--destination"}))
+  
   (let [paths-to-check (flatten [(user-irods-dir)
                                  (irods-auth-filepath)
                                  (irods-env-filepath)
@@ -29,12 +54,27 @@
    of the .irods/* files must exist, and the paths
    to the executable must exist."
   [options]
+  (if-not (:user options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--user"}))
+  
+  (if-not (usable? (:user options))
+    (throw+ {:error_code ERR_ACCESS_DENIED}))
+  
+  (if-not (:source options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--source"}))
+  
+  (if-not (:destination options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--destination"}))
+  
   (if-not (ft/dir? (:source options))
       (throw+ {:error_code ERR_NOT_A_FOLDER
                :path (:source options)}))
   
   (if-not (ft/abs-path? (:destination options))
-    (throw+ {:error_code "ERR_PATH_NOT_ABSOLUTE"
+    (throw+ {:error_code ERR_PATH_NOT_ABSOLUTE
              :path (:destination options)}))
   
   (let [paths-to-check (flatten [(files-to-transfer options)
@@ -60,6 +100,21 @@
    Additionally:
      * Destination must be a directory."
   [options]
+  (if-not (:user options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--user"}))
+  
+  (if-not (usable? (:user options))
+    (throw+ {:error_code ERR_ACCESS_DENIED}))
+  
+  (if-not (:source options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--source"}))
+  
+  (if-not (:destination options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--destination"}))
+  
   (let [paths-to-check (flatten [(user-irods-dir)
                                  (irods-auth-filepath)
                                  (irods-env-filepath)

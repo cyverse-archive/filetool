@@ -5,6 +5,11 @@
   (:require [clojure.string :as string]
             [clojure-commons.file-utils :as ft]))
 
+(defn pwd
+  "Returns the path to the current working directory."
+  []
+  (System/getProperty "user.dir"))
+
 (defn exclude-files
   "Splits up the exclude option and turns them all into absolute paths."
   [{excludes :exclude delimiter :exclude-delimiter}]

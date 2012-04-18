@@ -9,12 +9,10 @@
 
 (defn icommands-env
   "Constructs an environment variable map for the icommands."
-  []
-  (let [default-map {"irodsAuthFileName" (irods-auth-filepath)
-                     "irodsEnvFile"      (irods-env-filepath)}]
-    (if (system-env "clientUserName")
-      (merge default-map {"clientUserName" (system-env "clientUserName")})
-      default-map)))
+  [username]
+  {"irodsAuthFileName" (irods-auth-filepath)
+   "irodsEnvFile"      (irods-env-filepath)
+   "clientUserName"    username})
 
 (defn imkdir
   [d env]
@@ -33,7 +31,7 @@
   "Runs the imkdir command, creating a directory in iRODS."
   [options]
   (let [dest-dir (:destination options)
-        ic-env   (icommands-env)]
+        ic-env   (icommands-env (:user options))]
     (imkdir dest-dir ic-env)))
 
 (defn iput-command
@@ -43,7 +41,7 @@
   (let [source-dir      (ft/abs-path (:source options))
         dest-dir        (:destination options)
         single-threaded (:single-threaded options)
-        ic-env          (icommands-env)
+        ic-env          (icommands-env (:user options))
         transfer-files  (files-to-transfer options)
         dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
     (doseq [[src dest]  (seq dest-files)]
@@ -76,7 +74,7 @@
   [options]
   (let [source (:source options)
         dest   (:destination options)
-        ic-env (icommands-env)
+        ic-env (icommands-env (:user options))
         srcdir (ft/rm-last-slash source)
         args   (iget-args source dest (:single-threaded options) ic-env)]
     (shell-out args)))

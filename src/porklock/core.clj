@@ -12,10 +12,15 @@
   [args]
   (cli/cli
     args
+    ["-u"
+     "--user"
+     "The user the tool should run as."
+     :default nil]
+    
     ["-s"
      "--source"
      "The directory in iRODS contains files to be downloaded."
-     :default ""]
+     :default nil]
 
    ["-d"
     "--destination"
@@ -36,6 +41,11 @@
   [args]
   (cli/cli
     args
+    ["-u"
+     "--user"
+     "The user the tool should run as."
+     :default nil]
+    
     ["-e"
      "--exclude"
      "List of files to be excluded from uploads."
@@ -64,7 +74,7 @@
    ["-d"
     "--destination"
     "The destination directory in iRODS."
-    :default ""]
+    :default nil]
 
    ["-t"
     "--single-threaded"
@@ -80,10 +90,15 @@
   [args]
   (cli/cli
     args
+    ["-u"
+     "--user"
+     "The user the tool should run as."
+     :default nil]
+    
     ["-d"
      "--destination"
      "The destination directory in iRODS."
-     :default ""]
+     :default nil]
     
     ["-h"
      "--help"
@@ -136,6 +151,12 @@
       
       (= err-code "ERR_BAD_EXIT_CODE")
       (str "Command exited with status: " (:exit-code err))
+      
+      (= err-code "ERR_ACCESS_DENIED")
+      "You can't run this."
+      
+      (= err-code "ERR_MISSING_OPTION")
+      (str "Missing required option: " (:option err))
       
       :else (str "Error: " err))))
 
