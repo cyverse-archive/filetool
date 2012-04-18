@@ -11,12 +11,12 @@
 
 (defn usable?
   [user]
-  (let [path-elems (string/split (pwd) (re-pattern java.io.File/separator))]
-    (if (> (count path-elems) 3)
-      (or
+  (if (= user (System/getProperty "user.name"))
+    true
+    (let [path-elems (string/split (pwd) (re-pattern java.io.File/separator))]
+      (if (> (count path-elems) 3)
         (= user (nth path-elems 3))
-        (= user (System/getProperty "user.name")))
-      false)))
+        false))))
 
 (defn validate-mkdir
   "Validates the info for a mkdir op.
