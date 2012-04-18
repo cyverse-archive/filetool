@@ -13,9 +13,9 @@
   [user]
   (if (= user (System/getProperty "user.name"))
     true
-    (let [path-elems (string/split (pwd) (re-pattern java.io.File/separator))]
-      (if (> (count path-elems) 3)
-        (= user (nth path-elems 3))
+    (let [path-elems (set (string/split (pwd) (re-pattern java.io.File/separator)))]
+      (if (contains? path-elems user)
+        true
         false))))
 
 (defn validate-mkdir
