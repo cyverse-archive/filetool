@@ -24,13 +24,19 @@
     (absify (string/split includes (re-pattern delimiter)))
     []))
 
+(defn filtered-files
+  [source-dir excludes]
+  (let [base-excludes (set (map ft/basename excludes))]
+    (filter 
+      #(not (contains? base-excludes (ft/basename %1))) 
+      (files-and-dirs source-dir))))
+
 (defn files-to-transfer
   "Constructs a list of the files that need to be transferred."
   [options]
   (let [includes (set (include-files options))
-        excludes (set (exclude-files options))
-        allfiles (set (files-and-dirs (:source options)))]
-    (seq (union (difference allfiles excludes) includes))))
+        allfiles (set (filtered-files (:source options) (exclude-files options)))]
+    (seq (union allfiles includes))))
 
 (defn- str-contains?
   [s match]

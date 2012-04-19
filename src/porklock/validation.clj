@@ -1,5 +1,6 @@
 (ns porklock.validation
   (:use [porklock.pathing]
+        [clojure.pprint]
         [slingshot.slingshot :only [try+ throw+]]
         [clojure-commons.error-codes])
   (:require [clojure-commons.file-utils :as ft]
@@ -77,6 +78,10 @@
     (throw+ {:error_code ERR_PATH_NOT_ABSOLUTE
              :path (:destination options)}))
   
+  (println "Files to upload: ")
+    (pprint (files-to-transfer options))
+    (println " ")
+  
   (let [paths-to-check (flatten [(files-to-transfer options)
                                  (user-irods-dir)
                                  (irods-auth-filepath)
@@ -84,6 +89,9 @@
                                  (imkdir-path)
                                  (iput-path)
                                  (ils-path)])]
+    
+    (println "Paths to check: ")
+    (pprint paths-to-check)
     (doseq [p paths-to-check]
       (if (not (ft/exists? p))
         (throw+ {:error_code ERR_DOES_NOT_EXIST
