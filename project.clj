@@ -10,7 +10,7 @@
   :dev-dependencies [[org.iplantc/lein-iplant-rpm "1.1.0-SNAPSHOT"]]
   :iplant-rpm {:summary "Porklock"
                :type :command
-               :release 2
+               :release 3
                :exe-files ["curl_wrapper.pl"]}
   :repositories {"iplantCollaborative"
                  "http://projects.iplantcollaborative.org/archiva/repository/internal/"})
