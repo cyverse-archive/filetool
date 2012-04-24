@@ -1,5 +1,5 @@
 (ns porklock.pathing
-  (:use [clojure.set] 
+  (:use [clojure.set]
         [porklock.fileops]
         [porklock.system])
   (:require [clojure.string :as string]
@@ -24,19 +24,33 @@
     (absify (string/split includes (re-pattern delimiter)))
     []))
 
+(defn path-matches?
+  "Determines whether or not a path matches a filter path.  If the filter path
+   refers to a directory then all descendents of the directory match.
+   Otherwise, only that exact path matches."
+  [path filter-path]
+  (if (ft/dir? filter-path)
+    (.startsWith path filter-path)
+    (= path filter-path)))
+
+(defn should-not-exclude?
+  "Determines whether or not a file should be excluded based on the list of
+   excluded files."
+  [excludes path]
+  (not-any? #(path-matches? path %) excludes))
+
 (defn filtered-files
+  "Constructs a list of files that shouldn't be filtered out by the list of
+   excluded files."
   [source-dir excludes]
-  (let [base-excludes (set (map ft/basename excludes))]
-    (filter 
-      #(not (contains? base-excludes (ft/basename %1))) 
-      (files-and-dirs source-dir))))
+  (filter #(should-not-exclude? excludes %) (files-and-dirs source-dir)))
 
 (defn files-to-transfer
   "Constructs a list of the files that need to be transferred."
   [options]
   (let [includes (set (include-files options))
         allfiles (set (filtered-files (:source options) (exclude-files options)))]
-    (seq (union allfiles includes))))
+    (vec (union allfiles includes))))
 
 (defn- str-contains?
   [s match]

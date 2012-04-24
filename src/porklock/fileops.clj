@@ -10,7 +10,7 @@
   [parent]
   (filter #(not (ft/dir? %1)) 
           (map
-            #(.getAbsolutePath %)
+            #(ft/normalize-path (.getAbsolutePath %))
             (FileUtils/listFiles 
               (file parent) 
               TrueFileFilter/INSTANCE 
@@ -19,7 +19,7 @@
 (defn absify
   "Takes in a sequence of paths and turns them all into absolute paths."
   [paths]
-  (map #(if (ft/abs-path? %1) %1 (ft/abs-path %1)) paths))
+  (map #(ft/abs-path %) paths))
 
 (defn user-home
   "Returns the path to the user's home directory."
