@@ -3,7 +3,7 @@
   :main porklock.core
   :dependencies [[org.clojure/clojure "1.4.0"]
                  [org.clojure/tools.logging "0.2.3"]
-                 [org.iplantc/clojure-commons "1.1.0-SNAPSHOT"]
+                 [org.iplantc/clojure-commons "1.4.0-SNAPSHOT"]
                  [org.clojure/tools.cli "0.2.1"]
                  [commons-io/commons-io "2.2"]
                  [slingshot "0.10.2"]]
