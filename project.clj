@@ -1,9 +1,9 @@
-(defproject porklock "1.1.0-SNAPSHOT"
+(defproject porklock "1.1.1-SNAPSHOT"
   :description "A command-line tool for interacting with iRODS."
   :main porklock.core
-  :dependencies [[org.clojure/clojure "1.4.0"]
+  :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/tools.logging "0.2.3"]
-                 [org.iplantc/clojure-commons "1.4.0-SNAPSHOT"]
+                 [org.iplantc/clojure-commons "1.4.1-SNAPSHOT"]
                  [org.clojure/tools.cli "0.2.1"]
                  [commons-io/commons-io "2.2"]
                  [slingshot "0.10.2"]]
