@@ -1,5 +1,6 @@
 (ns porklock.pathing
   (:use [clojure.set]
+        [clojure.java.io]
         [porklock.fileops]
         [porklock.system])
   (:require [clojure.string :as string]
@@ -68,16 +69,19 @@
   [transfer-files source-dir dest-dir]
   
   (let [sdir (ft/add-trailing-slash source-dir)]
-    (apply merge (map
-                  #(if (str-contains? %1 sdir)
-                     {%1 (fix-path %1 sdir dest-dir)} 
-                     {%1 %1})
-                  transfer-files))))
+    (apply 
+      merge 
+      (map
+        #(if (str-contains? %1 sdir)
+           {%1 (fix-path %1 sdir dest-dir)} 
+           {%1 %1})
+        transfer-files))))
 
 (defn user-irods-dir
   "Returns the full path to the user's .irods directory."
   []
-  (ft/path-join (user-home) ".irods"))
+  (.mkdirs (as-file "./.irods"))
+  "./.irods")
 
 (defn irods-auth-filepath
   "Returns the path where the .irodsA should be."
@@ -112,3 +116,9 @@
    string if ils couldn't be found."
   []
   (find-file-in-path "ils"))
+
+(defn iinit-path
+  "Returns the path to the iinit executable or an empty
+   string if iinit couldn't be found."
+  []
+  (find-file-in-path "iinit"))

@@ -26,11 +26,11 @@
     "--destination"
     "The local directory that the files will be downloaded into."
     :default "."]
-
-   ["-t"
-    "--single-threaded"
-    "Tells the i-commands to only use a single thread."
-    :flag true]
+   
+   ["-c"
+    "--config"
+    "Tells porklock where to read its configuration."
+    :default nil]
    
    ["-h"
     "--help"
@@ -75,37 +75,18 @@
     "--destination"
     "The destination directory in iRODS."
     :default nil]
-
-   ["-t"
-    "--single-threaded"
-    "Tells the i-commands to only use a single thread."
-    :flag true]
+   
+   ["-c"
+    "--config"
+    "Tells porklock where to read its configuration."
+    :default nil]
    
    ["-h"
     "--help"
     "Prints this help."
     :flag true]))
 
-(defn mkdir-settings
-  [args]
-  (cli/cli
-    args
-    ["-u"
-     "--user"
-     "The user the tool should run as."
-     :default nil]
-    
-    ["-d"
-     "--destination"
-     "The destination directory in iRODS."
-     :default nil]
-    
-    ["-h"
-     "--help"
-     "Prints this help."
-     :flag true]))
-
-(def usage "Usage: porklock get|put|mkdir [options]")
+(def usage "Usage: porklock get|put [options]")
 
 (defn command
   [all-args]
@@ -113,7 +94,7 @@
     (println usage)
     (System/exit 1))
   
-  (when-not (contains? #{"put" "get" "mkdir"} (first all-args))
+  (when-not (contains? #{"put" "get"} (first all-args))
     (println usage)
     (System/exit 1))
   
@@ -125,7 +106,6 @@
     (case cmd
       "get"   (get-settings cmd-args)
       "put"   (put-settings cmd-args)
-      "mkdir" (mkdir-settings cmd-args)
       (do
         (println usage)
         (System/exit 1)))
@@ -174,12 +154,7 @@
        (println banner)
        (System/exit 0))
 
-     (case cmd
-       "mkdir" (do 
-                 (validate-mkdir options)
-                 (imkdir-command options)
-                 (System/exit 0))
-       
+     (case cmd       
        "get"   (do
                  (validate-get options)
                  (iget-command options)
