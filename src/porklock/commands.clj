@@ -21,6 +21,22 @@
            (irods-zone)
            (irods-resc)))
 
+(defn fix-meta
+  [m]
+  (cond 
+    (= (count m) 3) m
+    (= (count m) 2) (conj m "default-unit")
+    (= (count m) 1) (concat m ["default-value" "default-unit"])
+    :else           []))
+
+(defn apply-metadata
+  [cm dest meta]
+  (let [tuples (map fix-meta meta)]
+    (when (pos? (count tuples))
+      (doseq [tuple tuples]
+        (if (= (count tuple) 3)
+          (apply (partial set-metadata cm dest) tuple))))))
+
 (defn irods-env-contents
   [options]
   (str
@@ -43,22 +59,6 @@
     (make-irods-env env)
     (merge env {"clientUserName" (:user options)})))
 
-(defn fix-meta
-  [m]
-  (cond 
-    (= (count m) 3) m
-    (= (count m) 2) (conj m "default-unit")
-    (= (count m) 1) (concat m ["default-value" "default-unit"])
-    :else           []))
-
-(defn apply-metadata
-  [cm dest meta]
-  (let [tuples (map fix-meta meta)]
-    (when (pos? (count tuples))
-      (doseq [tuple tuples]
-        (if (= (count tuple) 3)
-          (apply (partial set-metadata cm dest) tuple))))))
-
 (defn iput-command
   "Runs the iput icommand, tranferring files from the --source
    to the remote --destination."
@@ -74,7 +74,8 @@
       (doseq [[src dest]  (seq dest-files)]
         (let [dir-dest (ft/dirname dest)]
           (when-not (exists? cm dir-dest)
-            (mkdirs cm dir-dest))
+            (mkdirs cm dir-dest)
+            (apply-metadata cm dir-dest metadata))
           (when-not (owns? cm (:user options) dir-dest)
             (set-owner cm dir-dest (:user options)))
           (shell-out [(iput-path) "-f" "-P" src dest :env ic-env])
