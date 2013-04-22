@@ -4,7 +4,8 @@
         [porklock.validation]
         [clojure-commons.error-codes]
         [slingshot.slingshot :only [try+ throw+]])
-  (:require [clojure.tools.cli :as cli]
+  (:require [porklock.config :as cfg] 
+            [clojure.tools.cli :as cli]
             [clojure.string :as string]
             [clojure-commons.file-utils :as ft]))
 
@@ -37,54 +38,65 @@
     "Prints this help."
     :flag true]))
 
+(defn- fmeta-split
+  [arg]
+  (filter #(not (nil? %)) (string/split arg #",")))
+
 (defn put-settings
   [args]
-  (cli/cli
-    args
-    ["-u"
-     "--user"
-     "The user the tool should run as."
-     :default nil]
-    
-    ["-e"
-     "--exclude"
-     "List of files to be excluded from uploads."
-     :default ""]
-   
-   ["-x"
-    "--exclude-delimiter"
-    "Delimiter for the list of files to be excluded from uploads"
-    :default ","]
-
-   ["-i"
-    "--include"
-    "List of files to make sure are uploaded"
-    :default ""]
-
-   ["-n"
-    "--include-delimiter"
-    "Delimiter for the list of files that should be included in uploads."
-    :default ","]
-
-   ["-s"
-    "--source"
-    "The local directory containing files to be transferred."
-    :default "."]
-
-   ["-d"
-    "--destination"
-    "The destination directory in iRODS."
-    :default nil]
-   
-   ["-c"
-    "--config"
-    "Tells porklock where to read its configuration."
-    :default nil]
-   
-   ["-h"
-    "--help"
-    "Prints this help."
-    :flag true]))
+  (let [file-metadata (atom [])
+        fmeta-set     #(reset! file-metadata (conj @file-metadata (fmeta-split %)))]
+    (cli/cli
+      args
+      ["-u"
+       "--user"
+       "The user the tool should run as."
+       :default nil]
+      
+      ["-e"
+       "--exclude"
+       "List of files to be excluded from uploads."
+       :default ""]
+      
+      ["-x"
+       "--exclude-delimiter"
+       "Delimiter for the list of files to be excluded from uploads"
+       :default ","]
+      
+      ["-i"
+       "--include"
+       "List of files to make sure are uploaded"
+       :default ""]
+      
+      ["-n"
+       "--include-delimiter"
+       "Delimiter for the list of files that should be included in uploads."
+       :default ","]
+      
+      ["-s"
+       "--source"
+       "The local directory containing files to be transferred."
+       :default "."]
+      
+      ["-d"
+       "--destination"
+       "The destination directory in iRODS."
+       :default nil]
+      
+      ["-c"
+       "--config"
+       "Tells porklock where to read its configuration."
+       :default nil]
+      
+      ["-m"
+       "--meta"
+       "Comma-delimited ATTR-VALUE-UNIT"
+       :parse-fn fmeta-set]
+      
+      ["-h"
+       "--help"
+       "Prints this help."
+       :flag true])))
 
 (def usage "Usage: porklock get|put [options]")
 
