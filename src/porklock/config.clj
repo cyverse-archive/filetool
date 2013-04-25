@@ -5,7 +5,8 @@
             [clojure-commons.config :as cc]
             [clojure-commons.error-codes :as ce]
             [clojure-commons.file-utils :as cf]
-            [clojure.tools.logging :as log]))
+            [clojure.tools.logging :as log]
+            [cemerick.url :as url]))
 
 (def ^:private props
   "A ref for storing the configuration properties."

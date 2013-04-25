@@ -7,7 +7,10 @@
                  [org.clojure/tools.cli "0.2.1"]
                  [commons-io/commons-io "2.2"]
                  [slingshot "0.10.3"]
-                 [org.iplantc/clj-jargon "0.2.4-SNAPSHOT"]]
+                 [com.cemerick/url "0.0.7"]
+                 [com.novemberain/welle "1.4.0"]
+                 [cheshire "5.1.1"]
+                 [org.iplantc/clj-jargon "0.2.5-SNAPSHOT"]]
   :plugins [[org.iplantc/lein-iplant-rpm "1.4.1-SNAPSHOT"]]
   :iplant-rpm {:summary "Porklock"
                :type :command

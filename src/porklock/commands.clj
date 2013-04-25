@@ -35,7 +35,7 @@
     (when (pos? (count tuples))
       (doseq [tuple tuples]
         (if (= (count tuple) 3)
-          (apply (partial set-metadata cm dest) tuple))))))
+          (apply (partial add-metadata cm dest) tuple))))))
 
 (defn irods-env-contents
   [options]
@@ -81,7 +81,9 @@
           (shell-out [(iput-path) "-f" "-P" src dest :env ic-env])
           (when-not (owns? cm (:user options) dest)
             (set-owner cm dest (:user options)))
-          (apply-metadata cm dest metadata))))))
+          (apply-metadata cm dest metadata)))
+      (when (exists? cm dest-dir)
+        (apply-metadata cm dest-dir metadata)))))
 
 (defn- iget-args
   [source destination env]
@@ -95,6 +97,16 @@
            (ft/add-trailing-slash destination)
            :env env]))
 
+(defn apply-input-metadata
+  [cm user fpath meta]
+  (if-not (jg/is-dir? cm fpath)
+    (if (jg/owns? cm user fpath)
+      (apply-metadata cm fpath meta))
+    (doseq [f (file-seq (jg/file fpath))]
+      (let [abs-path (.getAbsolutePath f)]
+        (if (jg/owns? cm user abs-path)
+          (apply-metadata cm abs-path meta))))))
+
 (defn iget-command
   "Runs the iget icommand, retrieving files from --source
    to the local --destination."
@@ -104,5 +116,8 @@
         irods-cfg (init-jargon (:config options))
         ic-env    (icommands-env options)
         srcdir    (ft/rm-last-slash source)
-        args      (iget-args source dest ic-env)]
-    (shell-out args)))
+        args      (iget-args source dest ic-env)
+        metadata  (:meta options)]
+    (jg/with-jargon irods-cfg [cm]
+      (apply-input-metadata cm (:user options) source metadata)
+      (shell-out args))))

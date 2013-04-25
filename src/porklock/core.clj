@@ -9,38 +9,45 @@
             [clojure.string :as string]
             [clojure-commons.file-utils :as ft]))
 
-(defn get-settings
-  [args]
-  (cli/cli
-    args
-    ["-u"
-     "--user"
-     "The user the tool should run as."
-     :default nil]
-    
-    ["-s"
-     "--source"
-     "The directory in iRODS contains files to be downloaded."
-     :default nil]
-
-   ["-d"
-    "--destination"
-    "The local directory that the files will be downloaded into."
-    :default "."]
-   
-   ["-c"
-    "--config"
-    "Tells porklock where to read its configuration."
-    :default nil]
-   
-   ["-h"
-    "--help"
-    "Prints this help."
-    :flag true]))
-
 (defn- fmeta-split
   [arg]
   (filter #(not (nil? %)) (string/split arg #",")))
+
+(defn get-settings
+  [args]
+  (let [file-metadata (atom [])
+        fmeta-set     #(reset! file-metadata (conj @file-metadata (fmeta-split %)))]
+    (cli/cli
+      args
+      ["-u"
+       "--user"
+       "The user the tool should run as."
+       :default nil]
+      
+      ["-s"
+       "--source"
+       "The directory in iRODS contains files to be downloaded."
+       :default nil]
+      
+      ["-d"
+       "--destination"
+       "The local directory that the files will be downloaded into."
+       :default "."]
+      
+      ["-c"
+       "--config"
+       "Tells porklock where to read its configuration."
+       :default nil]
+      
+      ["-m"
+       "--meta"
+       "Comma-delimited ATTR-VALUE-UNIT"
+       :parse-fn fmeta-set]
+      
+      ["-h"
+       "--help"
+       "Prints this help."
+       :flag true])))
 
 (defn put-settings
   [args]
