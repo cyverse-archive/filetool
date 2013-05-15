@@ -19,33 +19,6 @@
         true
         false))))
 
-(defn validate-mkdir
-  "Validates the info for a mkdir op.
-   Throws an error in the input is invalid.
-
-   For a mkdir op, all we need is the .irods
-   files and the imkdir executable."
-  [options]
-  (if-not (:user options)
-    (throw+ {:error_code ERR_MISSING_OPTION
-             :option "--user"}))
-  
-  (if-not (usable? (:user options))
-    (throw+ {:error_code ERR_ACCESS_DENIED}))
-  
-  (if-not (:destination options)
-    (throw+ {:error_code ERR_MISSING_OPTION
-             :option "--destination"}))
-  
-  (let [paths-to-check (flatten [(user-irods-dir)
-                                 (irods-auth-filepath)
-                                 (irods-env-filepath)
-                                 (imkdir-path)])]
-    (doseq [p paths-to-check]
-      (if (not (ft/exists? p))
-        (throw+ {:error_code ERR_DOES_NOT_EXIST
-                 :path p})))))
-
 (defn validate-put
   "Validates information for a put operation.
    Throws an error if the input is invalid.
@@ -78,17 +51,19 @@
     (throw+ {:error_code ERR_PATH_NOT_ABSOLUTE
              :path (:destination options)}))
   
+  (if-not (:config options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--config"}))
+  
   (println "Files to upload: ")
     (pprint (files-to-transfer options))
     (println " ")
   
   (let [paths-to-check (flatten [(files-to-transfer options)
-                                 (user-irods-dir)
-                                 (irods-auth-filepath)
-                                 (irods-env-filepath)
                                  (imkdir-path)
                                  (iput-path)
-                                 (ils-path)])]
+                                 (ils-path)
+                                 (:config options)])]
     
     (println "Paths to check: ")
     (pprint paths-to-check)
@@ -123,11 +98,13 @@
     (throw+ {:error_code ERR_MISSING_OPTION
              :option "--destination"}))
   
-  (let [paths-to-check (flatten [(user-irods-dir)
-                                 (irods-auth-filepath)
-                                 (irods-env-filepath)
-                                 (iget-path)
-                                 (:destination options)])]
+  (if-not (:config options)
+    (throw+ {:error_code ERR_MISSING_OPTION
+             :option "--config"}))
+  
+  (let [paths-to-check (flatten [(iget-path)
+                                 (:destination options)
+                                 (:config options)])]
     (doseq [p paths-to-check]
       (if (not (ft/exists? p))
         (throw+ {:error_code ERR_DOES_NOT_EXIST

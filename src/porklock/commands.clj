@@ -1,38 +1,63 @@
 (ns porklock.commands
   (:use [porklock.pathing]
         [porklock.system]
+        [porklock.config]
         [porklock.shell-interop]
+        [clj-jargon.jargon :as jg]
         [porklock.fileops :only [absify]]
         [clojure.pprint :only [pprint]])
   (:require [clojure.string :as string]
+            [clojure.java.io :as io]
             [clojure-commons.file-utils :as ft]))
+
+(defn init-jargon
+  [cfg-path]
+  (load-config-from-file cfg-path)
+  (jg/init (irods-host)
+           (irods-port)
+           (irods-user)
+           (irods-pass)
+           (irods-home)
+           (irods-zone)
+           (irods-resc)))
+
+(defn fix-meta
+  [m]
+  (cond 
+    (= (count m) 3) m
+    (= (count m) 2) (conj m "default-unit")
+    (= (count m) 1) (concat m ["default-value" "default-unit"])
+    :else           []))
+
+(defn apply-metadata
+  [cm dest meta]
+  (let [tuples (map fix-meta meta)]
+    (when (pos? (count tuples))
+      (doseq [tuple tuples]
+        (if (= (count tuple) 3)
+          (apply (partial add-metadata cm dest) tuple))))))
+
+(defn irods-env-contents
+  [options]
+  (str
+    "irodsHost "     (irods-host) "\n"
+    "irodsPort "     (irods-port) "\n"
+    "irodsUserName " (irods-user) "\n"
+    "irodsZone "     (irods-zone) "\n"
+    "irodsHome "     (irods-home) "\n"))
+
+(defn make-irods-env
+  [env]
+  (shell-out [(iinit-path) :in (irods-pass) :env env]))
 
 (defn icommands-env
   "Constructs an environment variable map for the icommands."
-  [username]
-  {"irodsAuthFileName" (irods-auth-filepath)
-   "irodsEnvFile"      (irods-env-filepath)
-   "clientUserName"    username})
-
-(defn imkdir
-  [d env]
-  (shell-out [(imkdir-path) "-p" d :env env]))
-
-(defn ils
-  [d env]
-  (shell-out [(ils-path) :env env]))
-
-(defn remote-create-dir
-  [file-path env]
-  (if (not (string/blank? (ft/dirname file-path)))
-    (imkdir (ft/dirname file-path) env)))
-
-(defn imkdir-command
-  "Runs the imkdir command, creating a directory in iRODS."
   [options]
-  (let [dest-dir (:destination options)
-        ic-env   (icommands-env (:user options))]
-    (imkdir dest-dir ic-env)))
+  (let [env {"irodsAuthFileName" (irods-auth-filepath)
+             "irodsEnvFile"      (irods-env-filepath)}]
+    (spit (irods-env-filepath) (irods-env-contents options))
+    (make-irods-env env)
+    (merge env {"clientUserName" (:user options)})))
 
 (defn iput-command
   "Runs the iput icommand, tranferring files from the --source
@@ -40,42 +65,59 @@
   [options]
   (let [source-dir      (ft/abs-path (:source options))
         dest-dir        (:destination options)
-        single-threaded (:single-threaded options)
-        ic-env          (icommands-env (:user options))
+        irods-cfg       (init-jargon (:config options))
+        ic-env          (icommands-env options)
         transfer-files  (files-to-transfer options)
+        metadata        (:meta options)
         dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
-    
-    (doseq [[src dest]  (seq dest-files)]
-      (remote-create-dir dest ic-env)
-      (let [args-list (if single-threaded
-                        [(iput-path) "-f" "-P" "-N 0" src dest :env ic-env]
-                        [(iput-path) "-f" "-P" src dest :env ic-env])]
-        (shell-out args-list)))))
+    (jg/with-jargon irods-cfg [cm]
+      (doseq [[src dest]  (seq dest-files)]
+        (let [dir-dest (ft/dirname dest)]
+          (when-not (exists? cm dir-dest)
+            (mkdirs cm dir-dest)
+            (apply-metadata cm dir-dest metadata))
+          (when-not (owns? cm (:user options) dir-dest)
+            (set-owner cm dir-dest (:user options)))
+          (shell-out [(iput-path) "-f" "-P" src dest :env ic-env])
+          (when-not (owns? cm (:user options) dest)
+            (set-owner cm dest (:user options)))
+          (apply-metadata cm dest metadata)))
+      (when (exists? cm dest-dir)
+        (apply-metadata cm dest-dir metadata)))))
 
 (defn- iget-args
-  [source destination single-threaded? env]
-  (let [src-dir (ft/rm-last-slash source)
-        dest    (ft/add-trailing-slash destination)]
-    (cond
-     (and (.endsWith source "/") single-threaded?)
-     [(iget-path) "-f" "-P" "-r" "-N 0" src-dir dest :env env]
-     
-     (and (.endsWith source "/") (not single-threaded?))
-     [(iget-path) "-f" "-P" "-r" src-dir dest :env env]
-     
-     (and (not (.endsWith source "/")) single-threaded?)
-     [(iget-path) "-f" "-P" "-N 0" src-dir dest :env env]
-     
-     :else
-     [(iget-path) "-f" "-P" src-dir dest :env env])))
+  [source destination env]
+  (filter #(not (nil? %)) 
+          [(iget-path) 
+           "-f" 
+           "-P" 
+           (if (.endsWith source "/") 
+             "-r")
+           (ft/rm-last-slash source)
+           (ft/add-trailing-slash destination)
+           :env env]))
+
+(defn apply-input-metadata
+  [cm user fpath meta]
+  (if-not (jg/is-dir? cm fpath)
+    (if (jg/owns? cm user fpath)
+      (apply-metadata cm fpath meta))
+    (doseq [f (file-seq (jg/file fpath))]
+      (let [abs-path (.getAbsolutePath f)]
+        (if (jg/owns? cm user abs-path)
+          (apply-metadata cm abs-path meta))))))
 
 (defn iget-command
   "Runs the iget icommand, retrieving files from --source
    to the local --destination."
   [options]
-  (let [source (:source options)
-        dest   (:destination options)
-        ic-env (icommands-env (:user options))
-        srcdir (ft/rm-last-slash source)
-        args   (iget-args source dest (:single-threaded options) ic-env)]
-    (shell-out args)))
+  (let [source    (:source options)
+        dest      (:destination options)
+        irods-cfg (init-jargon (:config options))
+        ic-env    (icommands-env options)
+        srcdir    (ft/rm-last-slash source)
+        args      (iget-args source dest ic-env)
+        metadata  (:meta options)]
+    (jg/with-jargon irods-cfg [cm]
+      (apply-input-metadata cm (:user options) source metadata)
+      (shell-out args))))
