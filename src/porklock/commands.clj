@@ -91,6 +91,7 @@
         metadata        (:meta options)
         skip-parent?    (:skip-parent-meta options)
         dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
+    (println "$PATH: " (System/getenv "PATH"))
     (jg/with-jargon irods-cfg [cm]
       (doseq [[src dest]  (seq dest-files)]
         (let [dir-dest (ft/dirname dest)]

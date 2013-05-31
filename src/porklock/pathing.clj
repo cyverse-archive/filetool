@@ -57,13 +57,38 @@
   []
   (find-file-in-path "iinit"))
 
+
+(defn relative-paths-to-exclude
+  []
+  [(irods-auth-filepath) 
+   (irods-env-filepath) 
+   ".irods" 
+   ".irods/.irodsA" 
+   ".irods/.irodsEnv"])
+
+(defn exclude-files-from-dir
+  "Splits up the exclude option and turns the result into paths in the source dir."
+  [{source :source excludes :exclude delimiter :exclude-delimiter}]
+  (let [irods-files (relative-paths-to-exclude)]
+    (if-not (string/blank? excludes)
+      (mapv 
+        #(ft/path-join source %) 
+        (concat 
+          (string/split excludes (re-pattern delimiter)) 
+          irods-files))
+      (mapv 
+        #(ft/path-join source %) 
+        irods-files))))
+
 (defn exclude-files
   "Splits up the exclude option and turns them all into absolute paths."
-  [{excludes :exclude delimiter :exclude-delimiter}]
-  (let [irods-files [(irods-auth-filepath) (irods-env-filepath)]]
+  [{excludes :exclude delimiter :exclude-delimiter :as in-map}]
+  (let [irods-files (relative-paths-to-exclude)]
     (if-not (string/blank? excludes)  
-      (absify (concat (string/split excludes (re-pattern delimiter)) irods-files))
-      irods-files)))
+      (concat
+        (exclude-files-from-dir in-map)
+        (absify (concat (string/split excludes (re-pattern delimiter)) irods-files)))
+      (concat (exclude-files-from-dir in-map) irods-files))))
 
 (defn include-files
   "Splits up the include option and turns them all into absolute paths."
@@ -97,7 +122,9 @@
   "Constructs a list of the files that need to be transferred."
   [options]
   (let [includes (set (include-files options))
+        excludes (exclude-files options)
         allfiles (set (filtered-files (:source options) (exclude-files options)))]
+    (println "EXCLUDING: " excludes)
     (vec (union allfiles includes))))
 
 (defn- str-contains?
