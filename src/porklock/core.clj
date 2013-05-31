@@ -100,6 +100,11 @@
        "Comma-delimited ATTR-VALUE-UNIT"
        :parse-fn fmeta-set]
       
+      ["-p"
+       "--skip-parent-meta"
+       "Tells porklock to skip applying metadata to the parent directories of an analysis."
+       :flag true]
+      
       ["-h"
        "--help"
        "Prints this help."
