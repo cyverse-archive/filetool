@@ -64,7 +64,8 @@
    (irods-env-filepath) 
    ".irods" 
    ".irods/.irodsA" 
-   ".irods/.irodsEnv"])
+   ".irods/.irodsEnv"
+   "logs/irods-config"])
 
 (defn exclude-files-from-dir
   "Splits up the exclude option and turns the result into paths in the source dir."
