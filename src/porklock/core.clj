@@ -167,36 +167,40 @@
 (defn -main
   [& args]
   (try+
-   (let [cmd      (command args)
+    (println "[porklock] [arguments] " args)
+    
+    (let [cmd      (command args)
          cmd-args (rest args)
          [options remnants banner] (settings cmd cmd-args)]
-     (when-not (> (count cmd-args) 0)
-       (println banner)
-       (System/exit 1))
-     
-     (when (:help options)
-       (println banner)
-       (System/exit 0))
-
-     (case cmd       
-       "get"   (do
-                 (validate-get options)
-                 (iget-command options)
-                 (System/exit 0))
-
-       "put"   (do 
-                 (validate-put options)
-                 (iput-command options)
-                 (System/exit 0))
-       
-       (do
-         (println banner)
-         (System/exit 1))))
-   (catch error? err
-     (println (err-msg err))
-     (System/exit 1))
-   (catch java.lang.Exception e
-     (println (format-exception e))
-     (System/exit 2))))
+      (println "[porklock] [options] " options)
+      (println "[porklock] [remnants] " remnants)
+      (when-not (> (count cmd-args) 0)
+        (println banner)
+        (System/exit 1))
+      
+      (when (:help options)
+        (println banner)
+        (System/exit 0))
+      
+      (case cmd       
+        "get"   (do
+                  (validate-get options)
+                  (iget-command options)
+                  (System/exit 0))
+        
+        "put"   (do 
+                  (validate-put options)
+                  (iput-command options)
+                  (System/exit 0))
+        
+        (do
+          (println banner)
+          (System/exit 1))))
+    (catch error? err
+      (println (err-msg err))
+      (System/exit 1))
+    (catch java.lang.Exception e
+      (println (format-exception e))
+      (System/exit 2))))
 
 
