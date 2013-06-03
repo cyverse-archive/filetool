@@ -32,9 +32,13 @@
       (dotimes [n 80] (print "="))
       (println " ")
       (doseq [opt-part (partition 2 opts)]
-        (println (str (name (first opt-part)) ": "))
-        (pprint (last opt-part))
-        (println " "))
+        ;;; don't print stdin.
+        (let [field     (name (first opt-part))
+              field-val (last opt-part)]
+          (when-not (= field "in")
+            (println (str field ": "))
+            (pprint field-val)
+            (println " "))))
       (println "command:")
       (println (string/join delimiter str-args))
       (println " "))

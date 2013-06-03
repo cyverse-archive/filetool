@@ -12,12 +12,7 @@
 
 (defn usable?
   [user]
-  (if (= user (System/getProperty "user.name"))
-    true
-    (let [path-elems (set (string/split (pwd) (re-pattern java.io.File/separator)))]
-      (if (contains? path-elems user)
-        true
-        false))))
+  true)
 
 (defn validate-put
   "Validates information for a put operation.
