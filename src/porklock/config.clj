@@ -65,6 +65,6 @@
   "Loads the configuration settings from a file."
   [config-path]
   (cc/load-config-from-file (cf/dirname config-path) (cf/basename config-path) props)
-  (cc/log-config props)
+  (cc/log-config props :filters [#"irods-user"])
   (validate-config))
 
