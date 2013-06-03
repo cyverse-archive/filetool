@@ -73,7 +73,9 @@
   (let [irods-files (relative-paths-to-exclude)]
     (if-not (string/blank? excludes)
       (mapv 
-        #(ft/path-join source %) 
+        #(if-not (.startsWith % "/") 
+           (ft/path-join source %)
+           %) 
         (concat 
           (string/split excludes (re-pattern delimiter)) 
           irods-files))
