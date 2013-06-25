@@ -80,7 +80,7 @@
   [cm username dir-dest]
   (loop [p (ft/dirname dir-dest)]
     (when-not (= (ft/rm-last-slash p) (user-home-dir cm username))
-      (if-not (owns? cm p username)
+      (if-not (owns? cm username p )
         (set-owner cm p username))
       (recur (ft/dirname p)))))
 
