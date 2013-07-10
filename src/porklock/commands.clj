@@ -61,7 +61,7 @@
 
 (defn make-irods-env
   [env]
-  (shell-out [(iinit-path) :in (irods-pass) :env env]))
+  (shell-out [(iinit-path) :in (irods-pass) :env env] :skip-err true))
 
 (defn icommands-env
   "Constructs an environment variable map for the icommands."

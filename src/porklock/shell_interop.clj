@@ -7,13 +7,13 @@
 (defn process-exit
   "Examines the exit map that gets passed in and decides whether to
    throw an exception or not."
-  [{:keys [exit out err]}]
+  [{:keys [exit out err]} skip-err]
   
   (when-not (string/blank? out) 
     (println "stdout: ")
     (println out))
   
-  (when-not (string/blank? err) 
+  (when-not (or skip-err (string/blank? err)) 
     (println "stderr: ")
     (println err))
   
@@ -51,8 +51,9 @@
 (defn shell-out
   "Prints out the command, executes the command, and then
    processes the exit map."
-  [args]
+  [args & {:keys [skip-err] :or {skip-err false}}]
   (-> args
     print-command
     exec
-    process-exit))
+    (process-exit skip-err)))
+
