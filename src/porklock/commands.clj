@@ -161,7 +161,7 @@
   (if-not (jg/is-dir? cm fpath)
     (if (jg/owns? cm user fpath)
       (apply-metadata cm fpath meta))
-    (doseq [f (file-seq (jg/file fpath))]
+    (doseq [f (file-seq (jg/file cm fpath))]
       (let [abs-path (.getAbsolutePath f)]
         (if (jg/owns? cm user abs-path)
           (apply-metadata cm abs-path meta))))))
