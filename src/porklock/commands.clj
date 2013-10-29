@@ -76,10 +76,25 @@
   [cm username]
   (ft/path-join "/" (:zone cm) "home" username))
 
+(defn home-folder?
+  [zone full-path]
+  (let [parent (ft/dirname full-path)]
+    (= parent (ft/path-join "/" zone "home"))))
+
+(defn halting-folders
+  [cm username]
+  (set (user-home-dir cm username)
+    (ft/path-join "/" (:zone cm) "home" "shared")))
+
+(defn halt?
+  [cm username path-to-test]
+  (or (contains? (halting-folders cm username) path-to-test)
+      (home-folder? (:zone cm) path-to-test)))
+
 (defn set-parent-owner
   [cm username dir-dest]
   (loop [p (ft/dirname dir-dest)]
-    (when-not (= (ft/rm-last-slash p) (user-home-dir cm username))
+    (when-not (halt? cm username p)
       (if-not (owns? cm username p )
         (set-owner cm p username))
       (recur (ft/dirname p)))))
@@ -110,16 +125,6 @@
           ;;; for the App and Execution.
           (porkprint "Applying metadata to" dir-dest)
           (apply-metadata cm dir-dest metadata)
-          
-          ;;; If the destination directory is the user's home directory,
-          ;;; then the set-parent-owner function may recurse up to root
-          ;;; in iRODS. The user needs to own the directories down to
-          ;;; this destination directory. They shouldn't be able to select
-          ;;; a directory inside a directory that they don't own, so this
-          ;;; should be safe.
-          (when-not (= (user-home-dir cm (:user options)) dir-dest)
-            (porkprint "Setting the owner for parent directories of " dir-dest " to " (:user options)) 
-            (set-parent-owner cm (:user options) dir-dest))
           
           ;;; Since we run as a proxy account, the destination directory
           ;;; needs to have the owner set to the user that ran the app.
