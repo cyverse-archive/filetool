@@ -23,7 +23,7 @@
 
 (defn fix-meta
   [m]
-  (cond 
+  (cond
     (= (count m) 3) m
     (= (count m) 2) (conj m "default-unit")
     (= (count m) 1) (concat m ["default-value" "default-unit"])
@@ -112,50 +112,54 @@
         skip-parent?    (:skip-parent-meta options)
         dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
     (jg/with-jargon irods-cfg [cm]
+      (when-not (owns? cm (:user options) dest-dir)
+        (porkprint "Setting the owner of " dest-dir " to " (:user options))
+        (set-owner cm dest-dir (:user options)))
+
       (doseq [[src dest]  (seq dest-files)]
         (let [dir-dest (ft/dirname dest)]
-          
+
           ;;; It's possible that the destination directory doesn't
           ;;; exist yet in iRODS, so create it if it's not there.
           (porkprint "Creating all directories in iRODS down to " dir-dest)
           (when-not (exists? cm dir-dest)
             (mkdirs cm dir-dest))
-          
+
           ;;; The destination directory needs to be tagged with AVUs
           ;;; for the App and Execution.
           (porkprint "Applying metadata to" dir-dest)
           (apply-metadata cm dir-dest metadata)
-          
+
           ;;; Since we run as a proxy account, the destination directory
           ;;; needs to have the owner set to the user that ran the app.
           (when-not (owns? cm (:user options) dir-dest)
             (porkprint "Setting owner of " dir-dest " to " (:user options))
             (set-owner cm dir-dest (:user options)))
-          
+
           (shell-out [(iput-path) "-f" "-P" src dest :env ic-env])
-          
+
           ;;; After the file has been uploaded, the user needs to be
           ;;; made the owner of it.
           (when-not (owns? cm (:user options) dest)
             (porkprint "Setting owner of " dest " to " (:user options))
             (set-owner cm dest (:user options)))
-          
+
           ;;; Apply the App and Execution metadata to the newly uploaded
           ;;; file/directory.
           (porkprint "Applying metadata to " dest)
           (apply-metadata cm dest metadata)))
-       
+
       (when (and (exists? cm dest-dir) (not skip-parent?))
         (porkprint "Applying metadata to " dest-dir)
         (apply-metadata cm dest-dir metadata)))))
 
 (defn- iget-args
   [source destination env]
-  (filter #(not (nil? %)) 
-          [(iget-path) 
-           "-f" 
-           "-P" 
-           (if (.endsWith source "/") 
+  (filter #(not (nil? %))
+          [(iget-path)
+           "-f"
+           "-P"
+           (if (.endsWith source "/")
              "-r")
            (ft/rm-last-slash source)
            (ft/add-trailing-slash destination)
@@ -185,4 +189,3 @@
     (jg/with-jargon irods-cfg [cm]
       (apply-input-metadata cm (:user options) source metadata)
       (shell-out args))))
-
