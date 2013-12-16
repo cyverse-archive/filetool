@@ -112,6 +112,14 @@
         skip-parent?    (:skip-parent-meta options)
         dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
     (jg/with-jargon irods-cfg [cm]
+      (when-not (exists? cm (ft/dirname dest-dir))
+        (porkprint (ft/dirname dest-dir) "does not exist.")
+        (System/exit 1))
+
+      (when-not (is-writeable? cm (:user options) (ft/dirname dest-dir))
+        (porkprint (ft/dirname dest-dir) "is not writeable.")
+        (System/exit 1))
+
       (when-not (owns? cm (:user options) dest-dir)
         (porkprint "Setting the owner of " dest-dir " to " (:user options))
         (set-owner cm dest-dir (:user options)))
