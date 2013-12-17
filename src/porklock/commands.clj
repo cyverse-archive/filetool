@@ -116,7 +116,9 @@
         (porkprint (ft/dirname dest-dir) "does not exist.")
         (System/exit 1))
 
-      (when-not (is-writeable? cm (:user options) (ft/dirname dest-dir))
+      (when (and (not (is-writeable? cm (:user options) (ft/dirname dest-dir)))
+                 (not= (user-home-dir cm (:user options))
+                       (ft/rm-last-slash dest-dir)))
         (porkprint (ft/dirname dest-dir) "is not writeable.")
         (System/exit 1))
 
