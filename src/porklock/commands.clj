@@ -3,10 +3,14 @@
         [porklock.system]
         [porklock.config]
         [porklock.shell-interop]
-        [clj-jargon.jargon :as jg]
         [porklock.fileops :only [absify]]
         [clojure.pprint :only [pprint]])
-  (:require [clojure.string :as string]
+  (:require [clj-jargon.init :as jg]
+            [clj-jargon.item-info :as jg-info]
+            [clj-jargon.item-ops :as jg-ops]
+            [clj-jargon.metadata :as jg-meta]
+            [clj-jargon.permissions :as jg-perms]
+            [clojure.string :as string]
             [clojure.java.io :as io]
             [clojure-commons.file-utils :as ft]))
 
@@ -31,14 +35,14 @@
 
 (defn avu?
   [cm path attr value]
-  (filter #(= value (:value %)) (get-attribute cm path attr)))
+  (filter #(= value (:value %)) (jg-meta/get-attribute cm path attr)))
 
 (def porkprint (partial println "[porklock] "))
 
 (defn apply-metadata
   [cm destination meta]
   (let [tuples (map fix-meta meta)
-        dest   (if (jg/is-dir? cm destination) (ft/rm-last-slash destination) destination)]
+        dest   (if (jg-info/is-dir? cm destination) (ft/rm-last-slash destination) destination)]
     (porkprint "Metadata tuples for " destination " are  " tuples)
     (when (pos? (count tuples))
       (doseq [tuple tuples]
@@ -48,7 +52,7 @@
           (porkprint "AVU? " dest (avu? cm dest (first tuple) (second tuple)))
           (when (empty? (avu? cm dest (first tuple) (second tuple)))
             (porkprint "Adding metadata " (first tuple) " " (second tuple) " " dest)
-            (apply (partial add-metadata cm dest) tuple)))))))
+            (apply (partial jg-meta/add-metadata cm dest) tuple)))))))
 
 (defn irods-env-contents
   [options]
@@ -95,8 +99,8 @@
   [cm username dir-dest]
   (loop [p (ft/dirname dir-dest)]
     (when-not (halt? cm username p)
-      (if-not (owns? cm username p )
-        (set-owner cm p username))
+      (if-not (jg-perms/owns? cm username p )
+        (jg-perms/set-owner cm p username))
       (recur (ft/dirname p)))))
 
 (defn iput-command
@@ -112,19 +116,19 @@
         skip-parent?    (:skip-parent-meta options)
         dest-files      (relative-dest-paths transfer-files source-dir dest-dir)]
     (jg/with-jargon irods-cfg [cm]
-      (when-not (exists? cm (ft/dirname dest-dir))
+      (when-not (jg-info/exists? cm (ft/dirname dest-dir))
         (porkprint (ft/dirname dest-dir) "does not exist.")
         (System/exit 1))
 
-      (when (and (not (is-writeable? cm (:user options) (ft/dirname dest-dir)))
+      (when (and (not (jg-perms/is-writeable? cm (:user options) (ft/dirname dest-dir)))
                  (not= (user-home-dir cm (:user options))
                        (ft/rm-last-slash dest-dir)))
         (porkprint (ft/dirname dest-dir) "is not writeable.")
         (System/exit 1))
 
-      (when-not (owns? cm (:user options) dest-dir)
+      (when-not (jg-perms/owns? cm (:user options) dest-dir)
         (porkprint "Setting the owner of " dest-dir " to " (:user options))
-        (set-owner cm dest-dir (:user options)))
+        (jg-perms/set-owner cm dest-dir (:user options)))
 
       (doseq [[src dest]  (seq dest-files)]
         (let [dir-dest (ft/dirname dest)]
@@ -132,8 +136,8 @@
           ;;; It's possible that the destination directory doesn't
           ;;; exist yet in iRODS, so create it if it's not there.
           (porkprint "Creating all directories in iRODS down to " dir-dest)
-          (when-not (exists? cm dir-dest)
-            (mkdirs cm dir-dest))
+          (when-not (jg-info/exists? cm dir-dest)
+            (jg-ops/mkdirs cm dir-dest))
 
           ;;; The destination directory needs to be tagged with AVUs
           ;;; for the App and Execution.
@@ -142,24 +146,24 @@
 
           ;;; Since we run as a proxy account, the destination directory
           ;;; needs to have the owner set to the user that ran the app.
-          (when-not (owns? cm (:user options) dir-dest)
+          (when-not (jg-perms/owns? cm (:user options) dir-dest)
             (porkprint "Setting owner of " dir-dest " to " (:user options))
-            (set-owner cm dir-dest (:user options)))
+            (jg-perms/set-owner cm dir-dest (:user options)))
 
           (shell-out [(iput-path) "-f" "-P" src dest :env ic-env])
 
           ;;; After the file has been uploaded, the user needs to be
           ;;; made the owner of it.
-          (when-not (owns? cm (:user options) dest)
+          (when-not (jg-perms/owns? cm (:user options) dest)
             (porkprint "Setting owner of " dest " to " (:user options))
-            (set-owner cm dest (:user options)))
+            (jg-perms/set-owner cm dest (:user options)))
 
           ;;; Apply the App and Execution metadata to the newly uploaded
           ;;; file/directory.
           (porkprint "Applying metadata to " dest)
           (apply-metadata cm dest metadata)))
 
-      (when (and (exists? cm dest-dir) (not skip-parent?))
+      (when (and (jg-info/exists? cm dest-dir) (not skip-parent?))
         (porkprint "Applying metadata to " dest-dir)
         (apply-metadata cm dest-dir metadata)))))
 
@@ -177,12 +181,12 @@
 
 (defn apply-input-metadata
   [cm user fpath meta]
-  (if-not (jg/is-dir? cm fpath)
-    (if (jg/owns? cm user fpath)
+  (if-not (jg-info/is-dir? cm fpath)
+    (if (jg-perms/owns? cm user fpath)
       (apply-metadata cm fpath meta))
-    (doseq [f (file-seq (jg/file cm fpath))]
+    (doseq [f (file-seq (jg-info/file cm fpath))]
       (let [abs-path (.getAbsolutePath f)]
-        (if (jg/owns? cm user abs-path)
+        (if (jg-perms/owns? cm user abs-path)
           (apply-metadata cm abs-path meta))))))
 
 (defn iget-command
